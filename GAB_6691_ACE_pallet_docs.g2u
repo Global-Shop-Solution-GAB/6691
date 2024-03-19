@@ -1,0 +1,107 @@
+﻿Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'hook 38404 script 3 button on staging header screen SHP700S1
+'Modes:
+'2 – Email
+'4 – Export
+'8 – Print
+'16 – View
+'Export Types:
+'0 – PDF
+'1 – CSV
+'2 – XLS
+
+F.Intrinsic.Control.Try
+V.Local.sError.Declare
+V.Local.sParams.Declare(String)
+V.Global.sParamaters.Declare(String)
+V.Local.sValues.Declare(String)
+V.Local.sRptID.Declare(String)
+V.Local.sPCK_NO.Declare(String)
+V.Local.sPCK.Declare(String)
+V.Local.sIncludeTax.Declare(String)
+V.Global.sOrderNo.Declare(String)
+V.Global.sInvoiceNo.Declare(String)
+V.Global.iRptID.Declare(String)
+V.Local.sSql.Declare(String)
+V.Local.sBIRptID.Declare(String)
+V.Global.bPackListExist.declare(String)
+V.Local.sDSN.Declare(String)
+V.Local.srptLoc.Declare(String)
+v.Local.sUserName.Declare(String)
+V.Local.iBIRunId.Declare(Long)
+V.Local.iLogID.Declare(Long)
+V.Local.iRet.Declare(Long)
+
+F.ODBC.Connection!Conx.OpenCompanyConnection(300)
+F.ODBC.Connection!Cony.Opencommonconnection
+
+f.Intrinsic.Control.If(v.Caller.Hook,=,"38401")
+	v.Passed.000095.Set("ACE Pallet Docs")
+	f.Intrinsic.Control.End
+f.Intrinsic.Control.Else
+		
+	v.Local.sPCK_NO.Set(v.Passed.000006)
+	f.Intrinsic.String.LPad(v.Local.sPCK_NO,"0",7,v.Local.sPCK_NO)
+	
+	f.Global.Security.GetFullName(v.Caller.User,v.Caller.CompanyCode,v.Local.sUserName)
+	
+	'print ACE document VCF (doc1)
+	F.Intrinsic.String.Concat(V.Caller.BusintDir,"\Custom\GAB_6691_ACE_VCF.rpt",V.Local.srptLoc)
+	F.Global.BI.InitializeReport("GAB_6691_ACE_VCF",V.Local.srptLoc,V.Local.sBIRptID)
+	v.Local.sParams.Set("Packing_No*!*GS_USER")
+	F.Intrinsic.String.Split(v.Local.sParams,"*!*",v.Local.sParams)
+	f.Intrinsic.String.Build("{0}*!*{1}",v.Local.sPCK_NO,v.Local.sUserName,v.Local.sValues)
+	F.Intrinsic.String.Split(v.Local.sValues,"*!*",v.Local.sValues)
+	'F.Global.BI.GetRunID(v.Local.iBIRunId)
+	'F.Global.BI.startlogging(v.Local.iBIRunId,v.Local.sBIRptID,-1,"",v.Local.iLogID)
+	'F.Global.BI.StopLogging(v.Local.iLogID)
+	'F.Global.BI.RunReportPreProcessor(V.Local.iBIRunId,V.Local.iLogID,V.Local.sParams,V.Local.sValues,V.Local.sBIRptID,16,True,"",1,"",-1,"","",V.Local.iRet)
+	F.Global.BI.PrintReport(V.Local.sBIRptID,0,V.Local.sParams,V.Local.sValues,"",False)
+		
+	'print ACE document LeanID (doc2)
+	F.Intrinsic.String.Concat(V.Caller.BusintDir,"\Custom\GAB_6691_ACE_LeanID.rpt",V.Local.srptLoc)
+	F.Global.BI.InitializeReport("GAB_6691_ACE_LeanID",V.Local.srptLoc,V.Local.sBIRptID)
+	v.Local.sParams.Set("Packing_No")
+	V.Local.sValues.Set(v.Local.sPCK_NO)
+	F.Global.BI.GetRunID(v.Local.iBIRunId)
+	F.Global.BI.startlogging(v.Local.iBIRunId,v.Local.sBIRptID,-1,"",v.Local.iLogID)
+	F.Global.BI.StopLogging(v.Local.iLogID)
+	F.Global.BI.RunReportPreProcessor(V.Local.iBIRunId,V.Local.iLogID,V.Local.sParams,V.Local.sValues,V.Local.sBIRptID,16,False,"",2,"",-1,"","",V.Local.iRet)
+	'F.Global.BI.PrintReport(V.Local.sBIRptID,0,V.Local.sParams,V.Local.sValues,"",True)
+	
+	'print ACE document pallet (doc3)
+	'lookup packing data to see if and carton codes are EXTPLT
+	F.Intrinsic.String.BUILD("select * from V_BOL_PACK_DTL where PCK_NO = '{0}' and CRTN_CD = 'EXTPLT'",v.Local.sPCK_NO,V.Local.ssql)
+	F.ODBC.Connection!Conx.OpenRecordsetRO("rstSel",V.Local.ssql)
+	F.Intrinsic.Control.If(V.ODBC.Conx!rstSel.EOF,=,False)	
+		F.Intrinsic.String.Concat(V.Caller.BusintDir,"\Custom\GAB_6691_ACE_Pallet.rpt",V.Local.srptLoc)
+		F.Global.BI.InitializeReport("GAB_6691_ACE_VPallet",V.Local.srptLoc,V.Local.sBIRptID)
+		v.Local.sParams.Set("Packing_No")
+		V.Local.sValues.Set(v.Local.sPCK_NO)
+		F.Global.BI.GetRunID(v.Local.iBIRunId)
+		F.Global.BI.startlogging(v.Local.iBIRunId,v.Local.sBIRptID,-1,"",v.Local.iLogID)
+		F.Global.BI.StopLogging(v.Local.iLogID)
+		F.Global.BI.RunReportPreProcessor(V.Local.iBIRunId,V.Local.iLogID,V.Local.sParams,V.Local.sValues,V.Local.sBIRptID,16,False,"",2,"",-1,"","",V.Local.iRet)
+		'F.Global.BI.PrintReport(V.Local.sBIRptID,0,V.Local.sParams,V.Local.sValues,"",True)
+	F.Intrinsic.Control.EndIf
+f.Intrinsic.Control.EndIf
+
+F.ODBC.Connection!Conx.Close
+F.ODBC.Connection!Cony.Close
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",v.Caller.ScriptFile,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$$}$05/15/17 1:56:49 PM$}$False
+${$5$}$3.0.0.0$}$0
+${$6$}$bstevens$}$20220506113756504$}$3Pg7+K2MGztoXyjxMVZqWaM5g3GOUsSNrM4TCkZv+MpMAFTAwt0D7a8u7aidcW3zxf0NQYC2CDQYiS1MO+hw9w==
+Program.Sub.Comments.End
